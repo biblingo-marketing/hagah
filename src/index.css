@@ -32,6 +32,10 @@
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
+  .tap:disabled {
+    @apply opacity-35 active:scale-100;
+    cursor: not-allowed;
+  }
   .tap-primary { @apply tap bg-neutral-100 text-ink-950; }
   .tap-secondary { @apply tap bg-ink-800 text-neutral-100 border border-ink-700; }
   .tap-huge { @apply tap min-h-[7rem] text-2xl; }

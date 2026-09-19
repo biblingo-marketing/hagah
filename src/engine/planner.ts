@@ -10,6 +10,7 @@ import {
   runEligible,
   integrityDueOn,
   stabilityOf,
+  isoDay as _isoDay,
 } from './scheduler'
 import {
   maxNewChunksPerScreenDay,
@@ -277,7 +278,7 @@ export function projectPlan(s: State, fromDay: string, maxDays = 180): PlanDay[]
 
       // SCH-3: whole-program integrity runs on the fixed expanding schedule.
       const milestone = integrityDueOn(start, day, done)
-      if (milestone !== null && block.kind !== 'screen' && introducedAll) {
+      if (milestone !== null && block.kind !== 'screen' && encodedAt.size >= 3) {
         done.push(milestone)
         activities.push({ type: 'integrity', milestone })
       }
@@ -327,3 +328,44 @@ export function activityLabel(a: Activity): string {
 
 export const weeklyQuota = { overtChecksPerWeek, randomEntryDrillsPerWeek }
 export type { BlockKind }
+
+// ── What is due today, for the Today screen ──────────────────────────────────
+
+
+const daysSince = (from: string | null, today: string) =>
+  from === null ? Infinity : daysBetween(from, today)
+
+/**
+ * RUN-5 / PLAN-5: the weekly overt check. It is due if seven days have passed since
+ * the last one, and it is never quietly dropped — protocol.md §13 names it as the
+ * closest substitute Hagah has for a human listener.
+ */
+export function weeklyCheckDue(s: State, today: string): boolean {
+  if (!encodedCards(s).some((c) => c.kind === 'chunk')) return false
+  const last = s.reviews.filter((r) => r.mode === 'weekly').at(-1)
+  return daysSince(last ? _isoDay(new Date(last.at)) : null, today) >= Math.round(7 / overtChecksPerWeek)
+}
+
+/** SCH-7: the weekly random-entry drill — the app names a node and you begin there. */
+export function randomEntryDue(s: State, today: string): boolean {
+  const encoded = encodedCards(s).filter((c) => c.kind === 'chunk')
+  if (encoded.length < 3) return false
+  return daysSince(s.lastRandomEntryDrill, today) >= Math.round(7 / randomEntryDrillsPerWeek)
+}
+
+/** Picks the entry point for the drill: anywhere but the beginning, which is free. */
+export function randomEntryNode(s: State): string | null {
+  const encoded = encodedCards(s)
+    .filter((c) => c.kind === 'chunk')
+    .map((c) => c.refId)
+  const candidates = chunks.filter((c) => encoded.includes(c.id)).slice(1)
+  if (!candidates.length) return null
+  return candidates[Math.floor(Math.random() * candidates.length)].id
+}
+
+/** SCH-3: the fixed expanding integrity schedule, deliberately not FSRS. */
+export function integrityDue(s: State, today: string): number | null {
+  if (!s.programStart) return null
+  if (encodedCards(s).filter((c) => c.kind === 'chunk').length < 3) return null
+  return integrityDueOn(s.programStart, today, s.integrityDone)
+}

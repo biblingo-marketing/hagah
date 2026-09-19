@@ -187,10 +187,15 @@ export function missSummary(misses: Miss[]): { klass: ErrorClass; n: number }[] 
   return [...counts.entries()].map(([klass, n]) => ({ klass, n })).sort((a, b) => b.n - a.n)
 }
 
-export const errorClassLabel: Record<ErrorClass, string> = {
-  'synonym-substitution': 'word swapped',
-  'connective-swap': 'connective swapped',
-  omission: 'dropped',
-  insertion: 'added',
-  'wrong-paragraph-start': 'started in the wrong place',
+const ERROR_LABELS: Record<ErrorClass, [one: string, many: string]> = {
+  'synonym-substitution': ['word swapped', 'words swapped'],
+  'connective-swap': ['connective swapped', 'connectives swapped'],
+  omission: ['word dropped', 'words dropped'],
+  insertion: ['word added', 'words added'],
+  'wrong-paragraph-start': ['wrong opening', 'wrong openings'],
+}
+
+export function errorClassLabel(klass: ErrorClass, n = 1): string {
+  const [one, many] = ERROR_LABELS[klass]
+  return n === 1 ? one : many
 }

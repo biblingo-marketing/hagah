@@ -29,6 +29,21 @@ npm run build    # production build into dist/
 npm test         # engine invariant tests
 ```
 
+## Deploying
+
+Pushes to `main` build and deploy automatically through Cloudflare Workers Builds:
+build command `npm run build`, deploy command `npx wrangler deploy`. No API token lives
+in this repository and none is needed — Cloudflare holds its own.
+
+`wrangler.jsonc` describes an assets-only Worker named `hagah` serving `./dist`. That name
+must match the Worker in the Cloudflare dashboard.
+
+To deploy by hand instead (needs `wrangler login` once):
+
+```
+npm run deploy
+```
+
 ## Content
 
 `src/content/romans.json` is hand-editable. It is generated and, more importantly,

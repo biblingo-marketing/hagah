@@ -24,7 +24,13 @@ The full research (evidence review, phase 4–6 memos, audience and competitor r
 
 ## Stack
 
-React + TypeScript + Vite, Tailwind for styling, deployed automatically to Cloudflare Pages on every push to `main`.
+React + TypeScript + Vite, Tailwind for styling, deployed automatically to **Cloudflare Workers**
+(Workers Builds) on every push to `main`. Config is `wrangler.jsonc` at the repo root: an
+assets-only Worker named `hagah` serving `./dist`. The Worker's name in the Cloudflare
+dashboard must match the `name` field there or the build fails.
+
+Note: `docs/decisions.md` still says Cloudflare Pages. That file is read-only (guardrail 6),
+so it has not been changed — but Workers is what is actually wired up.
 
 No backend, no database, no accounts, no sign-in. State persists in the browser. Nick is the only user. No API keys anywhere — the prototype must have no secrets, and `.env` stays in `.gitignore` regardless.
 

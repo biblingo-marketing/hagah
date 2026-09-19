@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { chunks, seams } from '../../content/content'
-import type { State, Block } from '../../storage/types'
+import type { State, Block, CardState } from '../../storage/types'
 import { emptyState } from '../../storage/store'
 import {
   ensureCards,
@@ -12,7 +12,16 @@ import {
   integrityDueOn,
 } from '../scheduler'
 import { projectPlan, runOrder, nextUnencodedChunkId } from '../planner'
-import { graduationCleanDays, maxNewChunksPerScreenDay, integrityDays, runEligibilityAccuracy } from '../params'
+import { graduationCleanDays, maxNewChunksPerScreenDay, integrityDays, runEligibilityAccuracy, middleWeight, cleanRecitationsToStop, feedbackOnCorrect, maxMeaningLinesPerChunk } from '../params'
+import { rehearsalAllocation, extraRehearsalLines } from '../rehearsal'
+import {
+  initialState,
+  step,
+  revealsFullText,
+  showsMeaning,
+  canContinuePastCriterion,
+} from '../acquisition'
+import type { AcqState, Event } from '../acquisition'
 
 const day0 = isoDay(new Date('2026-01-05T09:00:00')) // a Monday
 
@@ -102,7 +111,7 @@ describe('PLAN-5 / RUN-5 — a weekly overt check is always scheduled', () => {
 describe('SCH-4 — graduation is by criterion, never by calendar', () => {
   it('needs graduationCleanDays consecutive clean days to reach consolidated', () => {
     const s = stateWith([screenBlock])
-    let card = { ...s.cards[chunkCardId(chunks[0].id)], encodedOn: day0, tier: 'recent' as const }
+    let card: CardState = { ...s.cards[chunkCardId(chunks[0].id)], encodedOn: day0, tier: 'recent' }
     for (let i = 0; i < graduationCleanDays - 1; i++) {
       card = applyVerdict(card, 'clean', new Date(addDays(day0, i) + 'T09:00:00'))
       expect(card.tier).toBe('recent')
@@ -113,7 +122,7 @@ describe('SCH-4 — graduation is by criterion, never by calendar', () => {
 
   it('does not let one day count twice', () => {
     const s = stateWith([screenBlock])
-    let card = { ...s.cards[chunkCardId(chunks[0].id)], encodedOn: day0, tier: 'recent' as const }
+    let card: CardState = { ...s.cards[chunkCardId(chunks[0].id)], encodedOn: day0, tier: 'recent' }
     for (let i = 0; i < 5; i++) card = applyVerdict(card, 'clean', new Date(day0 + 'T09:00:00'))
     expect(card.cleanDayStreak).toBe(1)
     expect(card.tier).toBe('recent')
@@ -121,7 +130,7 @@ describe('SCH-4 — graduation is by criterion, never by calendar', () => {
 
   it('resets the streak on a break in the run of days', () => {
     const s = stateWith([screenBlock])
-    let card = { ...s.cards[chunkCardId(chunks[0].id)], encodedOn: day0, tier: 'recent' as const }
+    let card: CardState = { ...s.cards[chunkCardId(chunks[0].id)], encodedOn: day0, tier: 'recent' }
     card = applyVerdict(card, 'clean', new Date(day0 + 'T09:00:00'))
     card = applyVerdict(card, 'clean', new Date(addDays(day0, 3) + 'T09:00:00')) // gap
     expect(card.cleanDayStreak).toBe(1)
@@ -131,7 +140,7 @@ describe('SCH-4 — graduation is by criterion, never by calendar', () => {
 describe('SCH-5 — a stumble on a consolidated chunk demotes it', () => {
   it('drops it back to recent', () => {
     const s = stateWith([screenBlock])
-    let card = { ...s.cards[chunkCardId(chunks[0].id)], encodedOn: day0, tier: 'consolidated' as const }
+    let card: CardState = { ...s.cards[chunkCardId(chunks[0].id)], encodedOn: day0, tier: 'consolidated' }
     card = applyVerdict(card, 'again', new Date(day0 + 'T09:00:00'))
     expect(card.tier).toBe('recent')
     expect(card.cleanDayStreak).toBe(0)
@@ -185,5 +194,143 @@ describe('chain integrity', () => {
     const cards = { ...s.cards }
     cards[chunkCardId(chunks[0].id)] = { ...cards[chunkCardId(chunks[0].id)], encodedOn: day0 }
     expect(nextUnencodedChunkId({ ...s, cards })).toBe(chunks[1].id)
+  })
+})
+
+describe('ACQ-5 — rehearsal allocation weights the middle', () => {
+  it('peaks at the centre and falls to 1.0 at both edges', () => {
+    const a = rehearsalAllocation(5)
+    expect(a[0]).toBeCloseTo(1)
+    expect(a[4]).toBeCloseTo(1)
+    expect(a[2]).toBeCloseTo(middleWeight)
+    expect(a[1]).toBeGreaterThan(a[0])
+    expect(a[2]).toBeGreaterThan(a[1])
+  })
+
+  it('is symmetric', () => {
+    const a = rehearsalAllocation(4)
+    expect(a[0]).toBeCloseTo(a[3])
+    expect(a[1]).toBeCloseTo(a[2])
+  })
+
+  it('gives a chunk with no interior no weighting at all', () => {
+    expect(rehearsalAllocation(2)).toEqual([1, 1])
+    expect(rehearsalAllocation(1)).toEqual([1])
+    expect(extraRehearsalLines(2)).toEqual([])
+  })
+
+  it('selects the interior lines for the extra rehearsal turn', () => {
+    expect(extraRehearsalLines(4)).toEqual([1, 2])
+    expect(extraRehearsalLines(5)).toEqual([1, 2, 3])
+  })
+
+  it('applies to every chunk in the program without error', () => {
+    for (const c of chunks) expect(rehearsalAllocation(c.lines.length).length).toBe(c.lines.length)
+  })
+})
+
+describe('ACQ-1 — the attempt comes before any reveal', () => {
+  it('opens cue-only for a chunk with zero reps', () => {
+    expect(initialState(true).phase).toBe('guess')
+  })
+
+  it('reaches no full-text state without passing through the guess state', () => {
+    // Exhaustive search over every reachable state, from the only entry point.
+    const seen = new Set<string>()
+    const key = (s: AcqState) => `${s.phase}|${s.clean}|${s.attempted}`
+    const start = initialState(true)
+    const queue: { s: AcqState; sawGuess: boolean }[] = [{ s: start, sawGuess: true }]
+    const events: Event[] = ['tried', 'read-aloud', 'clean', 'stumbled', 'continue']
+    while (queue.length) {
+      const { s } = queue.shift()!
+      if (seen.has(key(s))) continue
+      seen.add(key(s))
+      for (const e of events) {
+        const next = step(s, e)
+        if (revealsFullText(next.phase)) {
+          // Every path here originated at 'guess', which is the only initial state.
+          expect(['aloud', 'feedback']).toContain(next.phase)
+        }
+        queue.push({ s: next, sawGuess: true })
+      }
+    }
+    // 'guess' can never be re-entered, so a reveal always sits downstream of it.
+    for (const e of events) expect(step(initialState(true), e).phase).not.toBe('feedback')
+  })
+})
+
+describe('ACQ-3 — feedback only after a failed or hesitant attempt', () => {
+  it('is unreachable when the attempt is graded clean', () => {
+    let s = initialState(true)
+    s = step(s, 'tried')
+    s = step(s, 'read-aloud')
+    for (let i = 0; i < cleanRecitationsToStop; i++) {
+      s = step(s, 'clean')
+      expect(s.phase).not.toBe('feedback')
+    }
+    expect(s.phase).toBe('done')
+  })
+
+  it('is reached on a stumble', () => {
+    let s = step(step(initialState(true), 'tried'), 'read-aloud')
+    s = step(s, 'stumbled')
+    expect(s.phase).toBe('feedback')
+  })
+
+  it('never shows feedback after a correct response', () => {
+    expect(feedbackOnCorrect).toBe(false)
+  })
+})
+
+describe('ACQ-4 — acquisition stops at criterion', () => {
+  it('stops at exactly cleanRecitationsToStop', () => {
+    let s = step(step(initialState(true), 'tried'), 'read-aloud')
+    for (let i = 0; i < cleanRecitationsToStop - 1; i++) {
+      s = step(s, 'clean')
+      expect(s.phase).toBe('recall')
+    }
+    s = step(s, 'clean')
+    expect(s.phase).toBe('done')
+    expect(s.clean).toBe(cleanRecitationsToStop)
+  })
+
+  it('offers no way past the criterion', () => {
+    let s = step(step(initialState(true), 'tried'), 'read-aloud')
+    for (let i = 0; i < cleanRecitationsToStop; i++) s = step(s, 'clean')
+    for (const e of ['tried', 'read-aloud', 'clean', 'stumbled', 'continue'] as Event[]) {
+      expect(step(s, e).phase).toBe('done')
+      expect(step(s, e).clean).toBe(cleanRecitationsToStop)
+    }
+    expect(canContinuePastCriterion).toBe(false)
+  })
+
+  it('stumbles do not un-bank a clean recitation', () => {
+    let s = step(step(initialState(true), 'tried'), 'read-aloud')
+    s = step(s, 'clean')
+    s = step(s, 'stumbled')
+    s = step(s, 'continue')
+    s = step(s, 'continue')
+    expect(s.clean).toBe(1)
+  })
+})
+
+describe('ACQ-6 — meaning aids are post-retrieval', () => {
+  it('is unreachable before an attempt', () => {
+    let s = initialState(true)
+    expect(showsMeaning(s)).toBe(false)
+    s = step(s, 'tried')
+    expect(showsMeaning(s)).toBe(false)
+    s = step(s, 'read-aloud')
+    expect(showsMeaning(s)).toBe(false)
+    s = step(s, 'stumbled')
+    expect(showsMeaning(s)).toBe(true)
+  })
+
+  it('is bounded to at most maxMeaningLinesPerChunk lines per chunk', () => {
+    for (const c of chunks) {
+      const lines = [c.speechAct, c.seamNote].filter(Boolean)
+      expect(lines.length).toBeLessThanOrEqual(maxMeaningLinesPerChunk)
+      for (const l of lines) expect(l.split('\n').length).toBe(1)
+    }
   })
 })

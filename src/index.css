@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-ink-950 text-neutral-100 font-ui antialiased;
+    /* Design: no accidental rubber-banding or text inflation on iOS. */
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior-y: none;
+  }
+  /* No celebration animations anywhere (CLAUDE.md guardrail 4). */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+}
+
+@layer components {
+  /* Large targets, readable at arm's length in a moving car (SAFE-1, UX principles). */
+  .tap {
+    @apply min-h-[4rem] px-6 rounded-2xl text-lg font-semibold tracking-tight
+           flex items-center justify-center gap-3 select-none
+           active:scale-[0.99] transition-transform;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .tap-primary { @apply tap bg-neutral-100 text-ink-950; }
+  .tap-secondary { @apply tap bg-ink-800 text-neutral-100 border border-ink-700; }
+  .tap-huge { @apply tap min-h-[7rem] text-2xl; }
+
+  .scripture {
+    @apply font-scripture text-[1.6rem] leading-[1.5] text-neutral-50;
+    font-variant-numeric: oldstyle-nums;
+  }
+  .label {
+    @apply font-ui text-xs uppercase tracking-[0.18em] text-neutral-500;
+  }
+}

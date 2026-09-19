@@ -1,0 +1,202 @@
+{
+  "_comment": "Hand-editable. `lines` are the meaningful units (CHK-5) and are also the fixed visual layout (CHK-4). Boundaries become immutable once practiced against (CHK-1). Rebuild/verify with: python3 tools/build_chunks.py",
+  "program": {
+    "id": "romans",
+    "title": "Romans",
+    "subtitle": "Chapters 1–5",
+    "translationId": "BSB"
+  },
+  "translation": {
+    "id": "BSB",
+    "name": "Berean Standard Bible",
+    "attribution": "Scripture quotations are from the Berean Standard Bible (BSB), which is in the public domain and available at https://bereanbible.com",
+    "publicDomain": true
+  },
+  "sections": [
+    {
+      "id": "greeting",
+      "title": "Greeting"
+    },
+    {
+      "id": "thanksgiving",
+      "title": "Thanksgiving"
+    },
+    {
+      "id": "thesis",
+      "title": "Thesis"
+    }
+  ],
+  "chunks": [
+    {
+      "id": "rom-1-001",
+      "ref": "1:1–2",
+      "landmark": "Greeting · the sender",
+      "sectionId": "greeting",
+      "cue": "Paul, a servant of Christ Jesus",
+      "lines": [
+        "Paul, a servant of Christ Jesus,",
+        "called to be an apostle,",
+        "and set apart for the gospel of God—",
+        "the gospel He promised beforehand through His prophets in the Holy Scriptures,"
+      ],
+      "text": "Paul, a servant of Christ Jesus, called to be an apostle, and set apart for the gospel of God— the gospel He promised beforehand through His prophets in the Holy Scriptures,",
+      "wordCount": 31,
+      "speechAct": "Paul names himself by office, then hands the letter straight over to its subject.",
+      "seamNote": "Opening of the letter. Nothing precedes it."
+    },
+    {
+      "id": "rom-1-002",
+      "ref": "1:3–4",
+      "landmark": "Greeting · what the gospel is about",
+      "sectionId": "greeting",
+      "cue": "regarding His Son",
+      "lines": [
+        "regarding His Son,",
+        "who was a descendant of David according to the flesh,",
+        "and who through the Spirit of holiness was declared with power to be the Son of God by His resurrection from the dead:",
+        "Jesus Christ our Lord."
+      ],
+      "text": "regarding His Son, who was a descendant of David according to the flesh, and who through the Spirit of holiness was declared with power to be the Son of God by His resurrection from the dead: Jesus Christ our Lord.",
+      "wordCount": 40,
+      "speechAct": "The gospel is defined by a person, in two phases: descended from David, declared Son of God.",
+      "seamNote": "“Regarding His Son” hangs directly on “the gospel of God” — the gospel just named now gets its content."
+    },
+    {
+      "id": "rom-1-003",
+      "ref": "1:5–6",
+      "landmark": "Greeting · Paul's commission",
+      "sectionId": "greeting",
+      "cue": "Through Him and on behalf of His name",
+      "lines": [
+        "Through Him and on behalf of His name,",
+        "we received grace and apostleship",
+        "to call all those among the Gentiles to the obedience that comes from faith.",
+        "And you also are among those who are called to belong to Jesus Christ."
+      ],
+      "text": "Through Him and on behalf of His name, we received grace and apostleship to call all those among the Gentiles to the obedience that comes from faith. And you also are among those who are called to belong to Jesus Christ.",
+      "wordCount": 41,
+      "speechAct": "Paul's apostleship is derived, not self-generated, and it aims at Gentile obedience.",
+      "seamNote": "“Through Him” reaches back to “Jesus Christ our Lord” — the Son just named is the one the commission comes through."
+    },
+    {
+      "id": "rom-1-004",
+      "ref": "1:7",
+      "landmark": "Greeting · the addressees",
+      "sectionId": "greeting",
+      "cue": "To all in Rome",
+      "lines": [
+        "To all in Rome who are loved by God",
+        "and called to be saints:",
+        "Grace and peace to you",
+        "from God our Father and the Lord Jesus Christ."
+      ],
+      "text": "To all in Rome who are loved by God and called to be saints: Grace and peace to you from God our Father and the Lord Jesus Christ.",
+      "wordCount": 28,
+      "speechAct": "The sentence lands on its recipients and turns into a blessing.",
+      "seamNote": "The opening sentence has run since verse 1 without naming anyone; this is the addressee it has been waiting for."
+    },
+    {
+      "id": "rom-1-005",
+      "ref": "1:8–9a",
+      "landmark": "Thanksgiving · the oath",
+      "sectionId": "thanksgiving",
+      "cue": "First, I thank my God",
+      "lines": [
+        "First, I thank my God through Jesus Christ for all of you,",
+        "because your faith is being proclaimed all over the world.",
+        "God, whom I serve with my spirit in preaching the gospel of His Son,",
+        "is my witness"
+      ],
+      "text": "First, I thank my God through Jesus Christ for all of you, because your faith is being proclaimed all over the world. God, whom I serve with my spirit in preaching the gospel of His Son, is my witness",
+      "wordCount": 39,
+      "speechAct": "Thanksgiving, then an oath: Paul calls God as witness to his praying.",
+      "seamNote": "The greeting is closed. “First” opens the body of the letter with the thanksgiving that conventionally follows it."
+    },
+    {
+      "id": "rom-1-006",
+      "ref": "1:9b–10",
+      "landmark": "Thanksgiving · the prayer",
+      "sectionId": "thanksgiving",
+      "cue": "how constantly I remember you",
+      "lines": [
+        "how constantly I remember you",
+        "in my prayers at all times,",
+        "asking that now at last by God’s will",
+        "I may succeed in coming to you."
+      ],
+      "text": "how constantly I remember you in my prayers at all times, asking that now at last by God’s will I may succeed in coming to you.",
+      "wordCount": 26,
+      "speechAct": "The content of the oath: unceasing prayer, with one request — safe arrival.",
+      "seamNote": "“Is my witness” needs an object; “how constantly” supplies what God is being called to witness."
+    },
+    {
+      "id": "rom-1-007",
+      "ref": "1:11–12",
+      "landmark": "Thanksgiving · why he wants to come",
+      "sectionId": "thanksgiving",
+      "cue": "For I long to see you",
+      "lines": [
+        "For I long to see you",
+        "so that I may impart to you some spiritual gift to strengthen you,",
+        "that is, that you and I may be mutually encouraged by each other’s faith."
+      ],
+      "text": "For I long to see you so that I may impart to you some spiritual gift to strengthen you, that is, that you and I may be mutually encouraged by each other’s faith.",
+      "wordCount": 33,
+      "speechAct": "He states his reason for coming, then corrects it mid-sentence into mutual exchange.",
+      "seamNote": "“For” gives the ground of the prayer just mentioned: he asks to come because he longs to come."
+    },
+    {
+      "id": "rom-1-008",
+      "ref": "1:13",
+      "landmark": "Thanksgiving · repeated attempts",
+      "sectionId": "thanksgiving",
+      "cue": "I do not want you to be unaware, brothers",
+      "lines": [
+        "I do not want you to be unaware, brothers,",
+        "how often I planned to come to you",
+        "(but have been prevented from visiting until now),",
+        "in order that I might have a harvest among you,",
+        "just as I have had among the other Gentiles."
+      ],
+      "text": "I do not want you to be unaware, brothers, how often I planned to come to you (but have been prevented from visiting until now), in order that I might have a harvest among you, just as I have had among the other Gentiles.",
+      "wordCount": 44,
+      "speechAct": "A disclosure formula: he has tried to come before, and been stopped.",
+      "seamNote": "The longing of verse 11 becomes a record — he has not merely wished to come, he has planned it repeatedly."
+    },
+    {
+      "id": "rom-1-009",
+      "ref": "1:14–15",
+      "landmark": "Thanksgiving · the obligation",
+      "sectionId": "thanksgiving",
+      "cue": "I am obligated",
+      "lines": [
+        "I am obligated both to Greeks and non-Greeks,",
+        "both to the wise and the foolish.",
+        "That is why I am so eager to preach the gospel",
+        "also to you who are in Rome."
+      ],
+      "text": "I am obligated both to Greeks and non-Greeks, both to the wise and the foolish. That is why I am so eager to preach the gospel also to you who are in Rome.",
+      "wordCount": 33,
+      "speechAct": "The plans rest on a debt: he owes the gospel to everyone, Rome included.",
+      "seamNote": "The harvest among the Gentiles is grounded — the reason he keeps planning to come is that he owes them."
+    },
+    {
+      "id": "rom-1-010",
+      "ref": "1:16–17",
+      "landmark": "Thesis · the righteousness of God",
+      "sectionId": "thesis",
+      "cue": "I am not ashamed of the gospel",
+      "lines": [
+        "I am not ashamed of the gospel,",
+        "because it is the power of God for salvation to everyone who believes,",
+        "first to the Jew, then to the Greek.",
+        "For the gospel reveals the righteousness of God that comes by faith from start to finish,",
+        "just as it is written: “The righteous will live by faith.”"
+      ],
+      "text": "I am not ashamed of the gospel, because it is the power of God for salvation to everyone who believes, first to the Jew, then to the Greek. For the gospel reveals the righteousness of God that comes by faith from start to finish, just as it is written: “The righteous will live by faith.”",
+      "wordCount": 55,
+      "speechAct": "The letter's thesis: the gospel saves because it reveals God's righteousness, received by faith.",
+      "seamNote": "Eagerness to preach is explained by confidence — and the letter states the theme it will argue for eleven chapters."
+    }
+  ]
+}

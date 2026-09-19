@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hagah",
+  // Pinned to the runtime this repo's wrangler ships (workerd 1.20260918.1).
+  // Raising it past the installed runtime's date makes wrangler warn.
+  "compatibility_date": "2026-09-18",
+  "assets": {
+    "directory": "./dist",
+    // Hagah routes on the hash, so this is belt-and-braces: any deep path that
+    // isn't a built file still returns index.html instead of a 404.
+    "not_found_handling": "single-page-application"
+  }
+}

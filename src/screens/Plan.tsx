@@ -26,7 +26,7 @@ export function Plan() {
 
   if (!s.blocks.length) {
     return (
-      <Shell title="Plan" back="/">
+      <Shell title="Plan" tab="plan">
         <p className="text-neutral-400 mb-6">No blocks yet.</p>
         <button className="tap-primary w-full" onClick={() => navigate('/blocks')}>
           Set up my week
@@ -36,7 +36,7 @@ export function Plan() {
   }
 
   return (
-    <Shell title="Plan" back="/">
+    <Shell title="Plan" tab="plan">
       <div className="rounded-2xl bg-ink-900 border border-ink-700 p-4 mb-6">
         {finish ? (
           <>

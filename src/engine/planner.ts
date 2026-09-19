@@ -20,6 +20,7 @@ import {
   overtChecksPerWeek,
   seamsPassMinutes,
 } from './params'
+import { resolve } from './settings'
 
 export type Activity =
   | { type: 'encode'; chunkId: string }
@@ -42,7 +43,12 @@ export type PlanDay = {
   newChunkId: string | null
 }
 
-const effectiveNewPerScreenDay = () => Math.min(maxNewChunksPerScreenDay, newUnitsPerAcquisitionSession)
+/** PLAN-2 capped by SCH-6: an acquisition session contains one unit, whatever the cap. */
+const effectiveNewPerScreenDay = (s?: State) =>
+  Math.min(
+    s ? Math.max(1, Math.round(resolve(s, 'maxNewChunksPerScreenDay'))) : maxNewChunksPerScreenDay,
+    newUnitsPerAcquisitionSession,
+  )
 
 export function blocksOn(blocks: Block[], date: string): Block[] {
   const dow = new Date(date + 'T00:00:00').getDay()
@@ -109,7 +115,10 @@ export function activeSeams(s: State): CardState[] {
  * RUN-2 gates entry: only material at ≥80% clause accuracy on its last check.
  */
 export function runOrder(s: State, today: string): { cardIds: string[]; seamIds: string[] } {
-  const eligible = encodedCards(s).filter((c) => c.kind === 'chunk' && runEligible(c))
+  // RUN-2's threshold is per-user tunable (protocol.md §10, experiment E5).
+  const eligible = encodedCards(s).filter(
+    (c) => c.kind === 'chunk' && runEligible(c, resolve(s, 'runEligibilityAccuracy')),
+  )
   const byRecency = [...eligible].sort(
     (a, b) => daysBetween(a.encodedOn!, today) - daysBetween(b.encodedOn!, today),
   )
@@ -233,7 +242,7 @@ export function projectPlan(s: State, fromDay: string, maxDays = 180): PlanDay[]
       if (block.kind === 'screen') {
         // PLAN-1 + PLAN-2 + SCH-6: new material only here, and one unit per session.
         if (newChunkId === null && queue.length) {
-          const take = effectiveNewPerScreenDay()
+          const take = effectiveNewPerScreenDay(s)
           for (let k = 0; k < take && queue.length; k++) {
             const id = queue.shift()!
             encodedAt.set(id, day)
@@ -368,4 +377,73 @@ export function integrityDue(s: State, today: string): number | null {
   if (!s.programStart) return null
   if (encodedCards(s).filter((c) => c.kind === 'chunk').length < 3) return null
   return integrityDueOn(s.programStart, today, s.integrityDone)
+}
+
+// ── On-demand practice ───────────────────────────────────────────────────────
+//
+// The schedule says what today *calls for*. It is not a lock on the app. Every mode
+// is reachable at any time, because the alternative is being unable to practice on a
+// day the planner did not anticipate — which is the opposite of fitting the method
+// around the hours you actually have.
+//
+// Two things still constrain on-demand practice, and both are invariants rather than
+// scheduling preferences:
+//
+//   PLAN-1 — new material is introduced only in screen blocks. This is about modality,
+//   not the calendar: the reason is that divided attention degrades encoding, and the
+//   car is for retrieval of learned material. Encode is inherently a screen activity —
+//   you cannot tap through it while driving — so reaching it on demand does not breach
+//   PLAN-1. The planner still never *schedules* first exposure into an audio or recall
+//   block, which is what the invariant's test checks.
+//
+//   PLAN-2 / SCH-6 — the pace cap holds regardless of how the session was started.
+//   The overload cliff does not care whether the chunk was scheduled or chosen.
+
+/** Chunks first encoded on a given day. */
+export function newChunksEncodedOn(s: State, day: string): string[] {
+  return Object.values(s.cards)
+    .filter((c) => c.kind === 'chunk' && c.encodedOn === day)
+    .map((c) => c.refId)
+}
+
+export type EncodeAvailability =
+  | { ok: true; chunkId: string }
+  | { ok: false; reason: 'none-left' | 'cap-reached'; encodedToday: number; cap: number }
+
+/** PLAN-2: the pace cap, enforced on demand as well as in the plan. */
+export function encodeAvailability(s: State, today: string, cap: number): EncodeAvailability {
+  const next = nextUnencodedChunkId(s)
+  if (!next) return { ok: false, reason: 'none-left', encodedToday: 0, cap }
+  const encodedToday = newChunksEncodedOn(s, today).length
+  if (encodedToday >= cap) return { ok: false, reason: 'cap-reached', encodedToday, cap }
+  return { ok: true, chunkId: next }
+}
+
+const byDue = (a: CardState, b: CardState) =>
+  new Date(a.fsrs.due).getTime() - new Date(b.fsrs.due).getTime()
+
+/**
+ * Everything encoded, most-overdue first. Used when you open a mode yourself rather
+ * than because the plan asked for it: there is always something to practice, and the
+ * most-overdue thing is the right place to pick up.
+ */
+export function practiceOrder(s: State): string[] {
+  return encodedCards(s).filter((c) => c.kind === 'chunk').sort(byDue).map((c) => c.id)
+}
+
+/**
+ * The seams-only pass as a mode in its own right. RUN-3 puts it inside the run, and
+ * the evidence review ranks a daily five-minute seams pass seventh of ten — but it
+ * was previously reachable only through a recall block, which made the highest-value
+ * five minutes in the method the hardest thing in the app to get to.
+ */
+export function seamsOnlyOrder(s: State): string[] {
+  return activeSeams(s).sort(byDue).map((c) => c.id)
+}
+
+/** Everything encoded plus every live seam, most-overdue first. */
+export function practiceAllOrder(s: State): string[] {
+  return [...encodedCards(s).filter((c) => c.kind === 'chunk'), ...activeSeams(s)]
+    .sort(byDue)
+    .map((c) => c.id)
 }

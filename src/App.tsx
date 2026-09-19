@@ -1,5 +1,7 @@
 import { useRoute } from './nav'
 import { Today } from './screens/Today'
+import { Practice } from './screens/Practice'
+import { PracticeRecall, PracticeSeams } from './screens/PracticeRecall'
 import { Boundaries } from './screens/Boundaries'
 import { Blocks } from './screens/Blocks'
 import { Plan } from './screens/Plan'
@@ -14,6 +16,10 @@ import { Settings } from './screens/Settings'
 
 export default function App() {
   const [route] = useRoute()
+  // Longest prefixes first: /practice/recall must not be swallowed by /practice.
+  if (route.startsWith('/practice/recall')) return <PracticeRecall />
+  if (route.startsWith('/practice/seams')) return <PracticeSeams />
+  if (route.startsWith('/practice')) return <Practice />
   if (route.startsWith('/boundaries')) return <Boundaries />
   if (route.startsWith('/blocks')) return <Blocks />
   if (route.startsWith('/plan')) return <Plan />

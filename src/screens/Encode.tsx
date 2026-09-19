@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Shell } from '../components/Shell'
 import { chunkById, prevChunk } from '../content/content'
-import { setState } from '../storage/store'
+import { setState, useStore } from '../storage/store'
 import { applyVerdict, chunkCardId, isoDay } from '../engine/scheduler'
 import { lineEmphasis, extraRehearsalLines } from '../engine/rehearsal'
 import { initialState, step, showsMeaning } from '../engine/acquisition'
-import { cleanRecitationsToStop, aloudPromptOnFirstExposure, speakVerseNumbers } from '../engine/params'
+import { cleanRecitationsToStop, aloudPromptOnFirstExposure } from '../engine/params'
+import { resolve } from '../engine/settings'
 import { navigate } from '../nav'
 
 /**
@@ -21,6 +22,8 @@ import { navigate } from '../nav'
  * session ends itself at criterion with nothing to press (ACQ-4).
  */
 export function Encode({ chunkId }: { chunkId: string }) {
+  const store = useStore()
+  const speakVerseNumbers = resolve(store, 'speakVerseNumbers')
   const chunk = chunkById.get(chunkId)
   const hasInterior = (chunk?.lines.length ?? 0) > 2
   const [acq, setAcq] = useState(() => initialState(hasInterior))

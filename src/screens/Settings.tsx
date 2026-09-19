@@ -1,6 +1,8 @@
 import { Shell } from '../components/Shell'
 import { exportJson, resetAll, setState, useStore } from '../storage/store'
 import { tunables } from '../engine/params'
+import { resolve } from '../engine/settings'
+import type { PerUserKey } from '../engine/settings'
 import { translation, program } from '../content/content'
 import { setRate, speak, resolveVoice } from '../audio/voice'
 import { navigate } from '../nav'
@@ -15,7 +17,7 @@ export function Settings() {
   const s = useStore()
 
   return (
-    <Shell title="Settings" back="/">
+    <Shell title="Settings" tab="settings">
       <div className="space-y-8 mt-4 pb-10">
         <section>
           <div className="label mb-3">Audio</div>
@@ -54,9 +56,14 @@ export function Settings() {
 
         <section>
           <div className="label mb-3">Tuning</div>
+          <p className="text-xs text-neutral-600 mb-3 leading-relaxed">
+            Only the values the protocol marks adjustable appear here. Everything else is
+            fixed, and changing it would be a change to the method rather than a setting.
+          </p>
           <div className="rounded-2xl bg-ink-900 border border-ink-700 p-4 space-y-4">
             {PER_USER.map(([key, t]) => {
-              const current = (s.overrides[key] ?? t.default) as number | boolean
+              // Read through the resolver so what the control shows is what the engine uses.
+              const current = resolve(s, key as PerUserKey) as number | boolean
               if (typeof t.default === 'boolean') {
                 return (
                   <div key={key} className="flex items-center justify-between gap-4">

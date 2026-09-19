@@ -4,7 +4,7 @@ import { chunkById, seamById } from '../content/content'
 import { setState, useStore } from '../storage/store'
 import { applyVerdict, isoDay } from '../engine/scheduler'
 import { commuteOrder } from '../engine/planner'
-import { playAnswerOnSuccess, speakVerseNumbers } from '../engine/params'
+import { resolve } from '../engine/settings'
 import { speak, cancelSpeech, silenceMsFor, spokenRef, resolveVoice, supportsSpeech } from '../audio/voice'
 import { navigate } from '../nav'
 
@@ -30,6 +30,10 @@ export function Commute() {
   /** The loop runs on `active`, not on `phase` — phase is what the screen shows. */
   const [active, setActive] = useState(false)
   const [passive, setPassive] = useState(false)
+  // Per-user tunables, resolved from settings rather than read off the defaults.
+  const playAnswerOnSuccess = resolve(s, 'playAnswerOnSuccess')
+  const speakVerseNumbers = resolve(s, 'speakVerseNumbers')
+  const pausePerWord = resolve(s, 'pausePerWord')
   const gotIt = useRef(false)
   const skip = useRef<(() => void) | null>(null)
 
@@ -74,7 +78,7 @@ export function Commute() {
       if (!passive) {
         // AUD-3: silence scales with chunk length, at pausePerWord seconds a word.
         setPhase('silence')
-        await delay(silenceMsFor(answerText))
+        await delay(silenceMsFor(answerText, pausePerWord))
         if (cancelled) return
       }
 
@@ -95,7 +99,7 @@ export function Commute() {
       skip.current = null
       cancelSpeech()
     }
-  }, [i, active, passive, cardId, answerText, cueText, ref])
+  }, [i, active, passive, cardId, answerText, cueText, ref, speakVerseNumbers, pausePerWord, playAnswerOnSuccess])
 
   const grade = (verdict: 'clean' | 'again') => {
     if (!cardId) return

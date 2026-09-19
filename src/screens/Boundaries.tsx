@@ -11,7 +11,7 @@ import { Shell } from '../components/Shell'
  */
 export function Boundaries() {
   return (
-    <Shell title={`${program.title} — proposed boundaries`} back="/">
+    <Shell title={`${program.title} — chunk boundaries`} tab="text">
       <p className="text-sm text-neutral-400 leading-relaxed mb-6 max-w-prose">
         {chunks.length} chunks covering {chunks[0].ref.split('–')[0]}–
         {chunks[chunks.length - 1].ref.split('–').pop()}. Each one is a discourse unit,

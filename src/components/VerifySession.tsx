@@ -9,7 +9,7 @@ import type { Score } from '../engine/diff'
 import type { ReviewMode } from '../storage/types'
 import * as rec from '../audio/recognition'
 import { navigate } from '../nav'
-import { speakVerseNumbers } from '../engine/params'
+import { resolve } from '../engine/settings'
 
 type Stage = 'prompt' | 'speaking' | 'typing' | 'result' | 'summary'
 
@@ -37,6 +37,7 @@ export function VerifySession({
    * Frozen at mount. Grading a card rewrites its FSRS due date, which would reorder a
    * live queue underneath the cursor and make the session skip or repeat cards.
    */
+  const speakVerseNumbers = resolve(s, 'speakVerseNumbers')
   const [queue] = useState(() => incoming)
   const [i, setI] = useState(0)
   const [stage, setStage] = useState<Stage>('prompt')

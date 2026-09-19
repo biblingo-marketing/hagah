@@ -4,7 +4,8 @@ import { chunkById, seamById } from '../content/content'
 import { setState, useStore } from '../storage/store'
 import { applyVerdict, isoDay } from '../engine/scheduler'
 import { runOrder } from '../engine/planner'
-import { seamsPassMinutes, runEligibilityAccuracy } from '../engine/params'
+import { seamsPassMinutes } from '../engine/params'
+import { resolve } from '../engine/settings'
 import { navigate } from '../nav'
 
 type Verdict = 'clean' | 'hesitant' | 'again'
@@ -20,6 +21,7 @@ export function RunCard() {
   const s = useStore()
   const today = isoDay(new Date())
   const order = useMemo(() => runOrder(s, today), [s, today])
+  const threshold = resolve(s, 'runEligibilityAccuracy')
   const [grading, setGrading] = useState(false)
   const [marks, setMarks] = useState<Record<string, Verdict>>({})
 
@@ -34,7 +36,7 @@ export function RunCard() {
       <Shell title="Run card" back="/">
         <p className="text-neutral-400 mt-6 leading-relaxed">
           Nothing is ready for a run yet. Material joins the run only once it recites at{' '}
-          {Math.round(runEligibilityAccuracy * 100)}% clause accuracy or better — below that,
+          {Math.round(threshold * 100)}% clause accuracy or better — below that,
           free recall mostly fails, and a failed attempt without feedback teaches nothing.
         </p>
         <button className="tap-primary w-full mt-8" onClick={() => navigate('/')}>

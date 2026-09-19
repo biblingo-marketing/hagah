@@ -9,20 +9,26 @@ import {
   weeklyCheckDue,
   randomEntryDue,
   integrityDue,
+  encodeAvailability,
 } from '../engine/planner'
 import { isoDay, stabilityOf, stabilityColor, chunkCardId } from '../engine/scheduler'
+import { newChunkCap } from '../engine/settings'
 import { chunkById, program, translation, chunks } from '../content/content'
 import { navigate } from '../nav'
 
 /**
- * One decision per screen. Today shows what today's blocks call for and nothing else:
- * no backlog, no count of what was skipped, no streak (PLAN-3, and CLAUDE.md guardrail 4).
+ * Today shows what today's blocks call for, and nothing else: no backlog, no count of
+ * what was skipped, no streak (PLAN-3, CLAUDE.md guardrail 4).
+ *
+ * What it does *not* do is prevent anything. A mode missing here means the plan did
+ * not ask for it today, not that it is unavailable — Practice reaches all of them.
  */
 export function Today() {
   const s = useStore()
   const today = isoDay(new Date())
   const todaysBlocks = blocksOn(s.blocks, today)
   const nextNew = nextUnencodedChunkId(s)
+  const encode = encodeAvailability(s, today, newChunkCap(s))
   const reviewIds = screenReviewOrder(s, today)
   const commuteIds = commuteOrder(s, today)
   const run = runOrder(s, today)
@@ -54,6 +60,12 @@ export function Today() {
           Set up my week
         </button>
         <button
+          className="tap-secondary w-full mt-3"
+          onClick={() => navigate(nextNew ? `/encode/${nextNew}` : '/practice')}
+        >
+          Just start practicing
+        </button>
+        <button
           className="text-sm text-neutral-400 underline underline-offset-4 mt-8"
           onClick={() => navigate('/boundaries')}
         >
@@ -64,22 +76,33 @@ export function Today() {
     )
   }
 
+  const scheduled: { key: string; label: string; to: string; primary?: boolean }[] = []
+  // RUN-5: never quietly droppable, so it leads when due.
+  if (weekly) scheduled.push({ key: 'weekly', label: 'Weekly check', to: '/weekly', primary: true })
+  if (integrity !== null)
+    scheduled.push({ key: 'integrity', label: `Whole passage · day ${integrity}`, to: '/integrity', primary: true })
+  if (hasScreen && encode.ok)
+    scheduled.push({
+      key: 'encode',
+      label: `Encode ${chunkById.get(encode.chunkId)?.ref}`,
+      to: `/encode/${encode.chunkId}`,
+      primary: !weekly && integrity === null,
+    })
+  if (hasScreen && reviewIds.length)
+    scheduled.push({ key: 'recall', label: `Recall check · ${reviewIds.length}`, to: '/recall' })
+  if (hasRecall && run.cardIds.length)
+    scheduled.push({ key: 'run', label: 'Run card', to: '/run' })
+  if (hasAudio && commuteIds.length)
+    scheduled.push({ key: 'commute', label: `Commute · ${commuteIds.length}`, to: '/commute' })
+  if (drill) scheduled.push({ key: 'drill', label: 'Random-entry drill', to: '/random-entry' })
+
   return (
-    <Shell>
-      <div className="pt-8 pb-5 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-scripture text-4xl tracking-tight">{program.title}</h1>
-          <p className="text-neutral-500 text-sm mt-1">
-            {program.subtitle} · {encoded.length} of {chunks.length} encoded
-          </p>
-        </div>
-        <button
-          onClick={() => navigate('/settings')}
-          className="w-11 h-11 -mr-2 rounded-full flex items-center justify-center text-neutral-500 text-xl shrink-0"
-          aria-label="Settings"
-        >
-          ⋯
-        </button>
+    <Shell tab="today">
+      <div className="pt-8 pb-5">
+        <h1 className="font-scripture text-4xl tracking-tight">{program.title}</h1>
+        <p className="text-neutral-500 text-sm mt-1">
+          {program.subtitle} · {encoded.length} of {chunks.length} encoded
+        </p>
       </div>
 
       {/* Stability is a colour, never a number (SCH-1, product.md). */}
@@ -98,76 +121,40 @@ export function Today() {
         </div>
       )}
 
+      {scheduled.length > 0 && <div className="label mb-2.5">Today</div>}
+
       <div className="space-y-3">
-        {/* RUN-5: never quietly droppable, so it sits above everything else when due. */}
-        {weekly && (
-          <button className="tap-primary w-full" onClick={() => navigate('/weekly')}>
-            Weekly check
+        {scheduled.map((item) => (
+          <button
+            key={item.key}
+            className={item.primary ? 'tap-primary w-full' : 'tap-secondary w-full'}
+            onClick={() => navigate(item.to)}
+          >
+            {item.label}
           </button>
-        )}
-
-        {integrity !== null && (
-          <button className="tap-primary w-full" onClick={() => navigate('/integrity')}>
-            Whole passage · day {integrity}
-          </button>
-        )}
-
-        {hasScreen && nextNew && (
-          <button className={weekly ? 'tap-secondary w-full' : 'tap-primary w-full'} onClick={() => navigate(`/encode/${nextNew}`)}>
-            Encode {chunkById.get(nextNew)?.ref}
-          </button>
-        )}
-
-        {reviewIds.length > 0 && (
-          <button className="tap-secondary w-full" onClick={() => navigate('/recall')}>
-            Recall check · {reviewIds.length}
-          </button>
-        )}
-
-        {hasRecall && run.cardIds.length > 0 && (
-          <button className="tap-secondary w-full" onClick={() => navigate('/run')}>
-            Run card
-          </button>
-        )}
-
-        {hasAudio && commuteIds.length > 0 && (
-          <button className="tap-secondary w-full" onClick={() => navigate('/commute')}>
-            Commute · {commuteIds.length}
-          </button>
-        )}
-
-        {drill && (
-          <button className="tap-secondary w-full" onClick={() => navigate('/random-entry')}>
-            Random-entry drill
-          </button>
-        )}
+        ))}
       </div>
 
-      {noBlocksToday && !weekly && integrity === null && (
-        <p className="text-neutral-500 mt-8 leading-relaxed">
-          No block scheduled today. Nothing is owed.
+      {scheduled.length === 0 && (
+        <p className="text-neutral-400 leading-relaxed mb-5">
+          {noBlocksToday
+            ? 'No block scheduled today. Nothing is owed.'
+            : 'Today’s blocks are done. Nothing is owed.'}
         </p>
       )}
 
-      {!hasScreen && nextNew && !noBlocksToday && (
-        <p className="text-neutral-600 text-sm mt-6 leading-relaxed">
-          New material waits for a screen block. Today has none.
+      {/* The schedule never blocks practice — it only says what today asked for. */}
+      <button className="tap-secondary w-full mt-3" onClick={() => navigate('/practice')}>
+        {scheduled.length ? 'Practice something else' : 'Practice anyway'}
+      </button>
+
+      {hasScreen && !encode.ok && encode.reason === 'cap-reached' && (
+        <p className="text-neutral-600 text-sm mt-5 leading-relaxed">
+          Today’s new chunk is done. The next one opens tomorrow.
         </p>
       )}
 
-      <div className="mt-10 flex flex-col items-start gap-3">
-        <button className="text-sm text-neutral-400 underline underline-offset-4" onClick={() => navigate('/plan')}>
-          See the plan
-        </button>
-        <button
-          className="text-sm text-neutral-400 underline underline-offset-4"
-          onClick={() => navigate('/boundaries')}
-        >
-          Chunk boundaries
-        </button>
-      </div>
-
-      <p className="text-xs text-neutral-600 leading-relaxed mt-12 pb-10">{translation.attribution}</p>
+      <p className="text-xs text-neutral-600 leading-relaxed mt-12 pb-6">{translation.attribution}</p>
     </Shell>
   )
 }
